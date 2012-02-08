@@ -1,0 +1,4 @@
+*.swp
+.settings
+Debug
+Release

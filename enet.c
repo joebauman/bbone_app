@@ -12,11 +12,10 @@
 #include "soc_AM335x.h"
 #include "beaglebone.h"
 #include "interrupt.h"
-#include "demoEnet.h"
-#include "demoCfg.h"
+#include "enet.h"
 #include "lwiplib.h"
 #include "net.h"
-#include "demoMain.h"
+#include "main.h"
 #include "lwipopts.h"
 #include "cpsw.h"
 #include "uartStdio.h"
@@ -38,16 +37,10 @@
 *******************************************************************************/
 static void CPSWCore0RxIsr(void);
 static void CPSWCore0TxIsr(void);
-//static char* ControlCGIHandler(char *params);
 
 /*******************************************************************************
 **                     INTERNAL VARIABLE DEFINITIONS
 *******************************************************************************/
-//static const tCGI g_psConfigCGIURIs[] =
-//{
-//    { "/io_control.cgi", ControlCGIHandler }
-//};
-
 unsigned int ipAddr;
 
 /*******************************************************************************
@@ -76,7 +69,6 @@ unsigned int EnetIfIsUp(void)
 
 unsigned int EnetLinkIsUp(void)
 {
-
    return (lwIPLinkStatusGet(0));
 }
 
@@ -101,14 +93,13 @@ void EnetHttpServerInit(void)
         
     /* Initialze the lwIP library, using DHCP.*/
 #if STATIC_IP_ADDRESS
-
-        ipAddr = lwIPInit(0, macArray, STATIC_IP_ADDRESS, 0, 0, IPADDR_USE_STATIC);
-
+        ipAddr = lwIPInit( 0, macArray,
+                           STATIC_IP_ADDRESS, 0, 0, IPADDR_USE_STATIC );
 #else
-
-        ipAddr = lwIPInit(0, macArray, 0, 0, 0, IPADDR_USE_DHCP);
-
+        ipAddr = lwIPInit( 0, macArray,
+                           0, 0, 0, IPADDR_USE_DHCP );
 #endif
+
         if( 0!= ipAddr)
         {
             break;
@@ -127,45 +118,8 @@ void EnetHttpServerInit(void)
 
     IpAddrDisplay();
 
-//    http_set_cgi_handlers(g_psConfigCGIURIs, NUM_CONFIG_CGI_URIS);
-
-    /* Initialize the sample httpd server. */
+    // Initialize the socket server.
     net_init();
-}
-
-
-
-/*
-** CGI handler 
-*/
-char* ControlCGIHandler(char *params)
-{
-    if(!(strcmp(params,"TIMER")))
-    {
-        clickIdx = CLICK_IDX_TIMER;    
-    }
-
-    else if(!(strcmp(params,"LED")))
-    {
-        clickIdx = CLICK_IDX_LED;    
-    }
-
-    else if(!(strcmp(params,"RTC")))
-    {
-        clickIdx = CLICK_IDX_RTC;    
-    }
-
-    else if(!(strcmp(params,"MMCSD")))
-    {
-        clickIdx = CLICK_IDX_SD;
-    }
- 
-    else
-    {
-        clickIdx = 0;
-    }
- 
-    return "/io_cgi.ssi";
 }
 
 
@@ -195,9 +149,7 @@ void IpAddrDisplay(void)
 */
 static void CPSWCore0RxIsr(void)
 {
-    UARTPuts( "Enter CPSWCore0RxISR \n\r", -1 );
-	lwIPRxIntHandler(0);
-    UARTPuts( "Exit CPSWCore0RxISR \n\r", -1 );
+    lwIPRxIntHandler(0);
 }
 
 /*
@@ -205,9 +157,7 @@ static void CPSWCore0RxIsr(void)
 */
 static void CPSWCore0TxIsr(void)
 {
-    UARTPuts( "Enter CPSWCore0TxISR \n\r", -1 );
     lwIPTxIntHandler(0);
-    UARTPuts( "Exit CPSWCore0TxISR \n\r", -1 );
 }
 
 /*

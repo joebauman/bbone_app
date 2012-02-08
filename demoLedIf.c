@@ -11,7 +11,6 @@
 
 #include "soc_AM335x.h"
 #include "beaglebone.h"
-#include "demoCfg.h"
 #include "gpio_v2.h"
 #include "demoLedIf.h"
 

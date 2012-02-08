@@ -4,23 +4,24 @@
  * \brief   This file contains the main() and other functions.
  *
  */
-#include "interrupt.h"
-#include "demoMain.h"
-#include "soc_AM335x.h"
-#include "demoCfg.h"
+
+#include "main.h"
+
 #include "demoTimer.h"
-#include "demoEnet.h"
+#include "enet.h"
 #include "demoLedIf.h"
 #include "demoRtc.h"
+//#include "demoSdRw.h"
+//#include "demoSdFs.h"
+#include "i2c.h"
+
+#include "interrupt.h"
+#include "soc_AM335x.h"
 #include "cp15.h"
 #include "beaglebone.h"
 #include "uartStdio.h"
-//#include "demoSdRw.h"
-//#include "demoSdFs.h"
 #include "delay.h"
 #include <string.h>
-
-#include "i2c.h"
 
 /****************************************************************************
 **                   INTERNAL MACRO DEFINITIONS                                       
@@ -40,7 +41,6 @@
 ****************************************************************************/
 static void EnetStatusCheckNUpdate(void);
 static void PeripheralsSetUp(void);
-static void ClickAction(void);
 static void ContextReset(void);
 static void dummyIsr(void);
 
@@ -106,61 +106,6 @@ static void ContextReset(void)
     rtcSetFlag = FALSE;
     rtcSecUpdate = FALSE;
 //    sdCardAccessFlag = FALSE;
-}
-
-/*
-** Take the actions on click.
-*/
-static void ClickAction(void)
-{
-    switch(clickIdx)
-    {
-        case CLICK_IDX_RTC:
-//            sdCardAccessFlag = FALSE;
-            tmrFlag  = FALSE;
-            tmrClick = FALSE;
-            LedOff();
-//            RtcTimeCalSet(); 
-        break;
-        
-        case CLICK_IDX_LED:
-//            sdCardAccessFlag = FALSE;
-            Timer2Stop();
-            LedOn();
-            tmrClick = FALSE;
-            rtcSetFlag = FALSE;
-        break;
-
-        case CLICK_IDX_TIMER:
-//            sdCardAccessFlag = FALSE;
-            rtcSetFlag = FALSE;
-            tmrClick = TRUE;
-            tmrFlag  = FALSE;
-            Timer2Start();
-        break;
-        
-        case CLICK_IDX_SD:
-            rtcSetFlag = FALSE;
-            tmrClick = FALSE;
-            tmrFlag  = FALSE;
-            LedOff();
-/*
-            if(TRUE == HSMMCSDCardPresentStat())
-            {
-                sdCardAccessFlag = TRUE;
-            }
-            else
-            {
-                sdCardAccessFlag = FALSE;
-                UARTPuts("\n\rSD card not present. Please insert an", -1);
-                UARTPuts(" SD card and try again! \n\r", -1);
-            }
-*/
-        break;
-
-        default:
-        break;
-    }  
 }
 
 /*
@@ -292,8 +237,6 @@ int main(void)
              /*
              ** Take the Action for click
              */
-             ClickAction();
-
              clickIdx = 0;
          }
        
@@ -411,4 +354,4 @@ static void dummyIsr(void)
 }
 
 /****************************** End of file *********************************/
-  
+ 

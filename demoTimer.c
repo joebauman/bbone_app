@@ -10,7 +10,6 @@
  */
 
 #include "demoTimer.h"
-#include "demoCfg.h"
 #include "soc_AM335x.h"
 #include "evmAM335x.h"
 #include "interrupt.h"
