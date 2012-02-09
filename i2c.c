@@ -155,7 +155,7 @@ void InitI2C( void )
     tCount = 0;
     SetupI2CTransmit( 1, 2 );
 
-    expanderSend( 0xFF );
+    expanderSend( 0x00 );
 }
 
 void SetupI2C( unsigned int channel, unsigned int slaveAddr )

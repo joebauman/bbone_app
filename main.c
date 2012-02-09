@@ -60,6 +60,7 @@ extern void etharp_tmr(void);
 ****************************************************************************/
 
 unsigned int runCommand = 0;
+unsigned char runData[ 16 ];
 
 unsigned int clickIdx = 0;
 
@@ -113,8 +114,6 @@ static void ContextReset(void)
 */
 int main(void)
 {
-    static unsigned char expVal = 0xAA;
-
     unsigned int index;
     unsigned int j;
 
@@ -225,8 +224,7 @@ int main(void)
          {
             runCommand = 0;
 
-            expanderSend( expVal );
-            expVal ^= 0xFF;
+            expanderSend( runData[ 0 ] );
          }
 
          /*

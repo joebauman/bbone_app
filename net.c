@@ -4,7 +4,7 @@
 
 #include "uartStdio.h"
 
-#define ECHO_SERVER_PORT        2000
+#define ECHO_SERVER_PORT        3891
 
 // The poll delay is X*500ms
 #define ECHO_POLL_INTERVAL      4
@@ -19,10 +19,31 @@ err_t net_recv( void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err );
 err_t net_accept( void *arg, struct tcp_pcb *pcb, err_t err );
 
 extern unsigned int runCommand;
+extern unsigned char runData[ 16 ];
 
 // Global copy buffer for echoing data back to the sender
 unsigned char mydata[ MAX_SIZE ];
 
+unsigned char char2num( unsigned char c )
+{
+    unsigned char ret = 0;
+
+    // The next char should be a byte val - 0-F
+    if( c >= 0x30 && c <= 0x39 ) // 0-9
+    {
+        ret = c - 0x30;
+    }
+    else if( c >= 0x41 && c <= 0x46 ) // A-F
+    {
+        ret = c - 0x37;
+    }
+    else if( c >= 0x61 && c <= 0x66 ) // a-f
+    {
+        ret = c - 0x57;
+    }
+
+    return ret;
+}
 
 void net_init( void )
 {
@@ -47,8 +68,6 @@ err_t net_accept( void *arg, struct tcp_pcb *pcb, err_t err )
 {
     //LWIP_UNUSED_ARG( err );
 
-    UARTPuts( "Enter net_accept\n\r", -1 );
-
     // Decrease the listen backlog counter
     tcp_accepted( (struct tcp_pcb_listen*)arg );
 
@@ -60,7 +79,6 @@ err_t net_accept( void *arg, struct tcp_pcb *pcb, err_t err )
     tcp_poll( pcb, NULL, ECHO_POLL_INTERVAL );
     tcp_sent( pcb, NULL );
 
-    UARTPuts( "Exit net_accept\n\r", -1 );
     return ERR_OK;
 }
 
@@ -68,7 +86,9 @@ err_t net_recv( void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err )
 {
     err_t err_send;
 
-    UARTPuts( "Enter net_recv\n\r", -1 );
+    char *data;
+    unsigned int cnt = 0, j, i;
+    unsigned int len, tot_len;
 
     if( p != NULL )
     {
@@ -90,11 +110,44 @@ err_t net_recv( void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err )
     }
 
     // Do something weith the data?
-    err_send = net_send( pcb, p );
+    tot_len = p->tot_len;
 
-    runCommand = 1;
+    // Traverse pbuf chain and store payload of each pbuf into buffer 
+    do
+    {
+        data = (char*)p->payload;
+        len  = p->len;
 
-    UARTPuts( "Exit net_recv\n\r", -1 );
+        for( i = 0, j = 0; i < len; i++, j++, cnt++ )
+        {
+            mydata[ cnt ] = data[ j ];
+        }
+        p = p->next;
+
+    } while( p != NULL );
+
+    UARTPuts( "Received: \n\r", -1 );
+    UARTPuts( (char *)mydata, tot_len );
+    UARTPuts( "\n\r", -1 );
+
+    if( mydata[ 0 ] == 'S' ) // Set
+    {
+        if( mydata[ 1 ] == 'E' ) // Expander
+        {
+            runData[ 0 ] = char2num( mydata[ 2 ] ) << 4;
+            runData[ 0 ] += char2num( mydata[ 3 ] );
+
+            runCommand = 1;
+        }
+    }
+
+    // free pbuf's
+    pbuf_free( p );
+
+    // send the data in buffer over network with tcp header attached
+    err_send = tcp_write( pcb, mydata, tot_len, TCP_WRITE_FLAG_COPY );
+
+    //err_send = net_send( pcb, p );
 
     return err_send;
 }
@@ -112,8 +165,6 @@ err_t net_send( struct tcp_pcb *pcb, struct pbuf *p )
     // Traverse pbuf chain and store payload of each pbuf into buffer 
     do
     {
-        UARTPuts( "net_send do...\n\r", -1 );
-
         data = (char*)p->payload;
         len  = p->len;
 
