@@ -205,18 +205,21 @@ int main(void)
 
     Timer4Start(); 
 
-    for( index = 0; index < 500; ++index )
+    for( index = 0; index < 5; ++index )
     {
-       LedToggle();
+        LedToggle();
 
-       for( j = 0; j < 10000; ++j );
+        for( j = 0; j < 100000; ++j );
     }
+
+    // TEMP
+    i2cTest();
 
     /*
     ** Loop for ever. Necessary actions shall be taken
     ** after detecting the click.
     */
-    while(1)
+    while( 1 )
     {
          EnetStatusCheckNUpdate();
 

@@ -15,6 +15,12 @@
 #define I2C_ADDR_PIC_DAC        (0x90 >> 1)
 #define I2C_ADDR_PIC_EEPROM     (0xA0 >> 1)
 
+// I2C Addresses of Custom Proto
+#define I2C_ADDR_CUSTOM_EXP0    (0x48 >> 1)
+#define I2C_ADDR_CUSTOM_EXP1    (0x4A >> 1)
+#define I2C_ADDR_CUSTOM_UART0   (0x90 >> 1)
+#define I2C_ADDR_CUSTOM_UART1   (0x92 >> 1)
+
 void expanderSend( unsigned char data );
 void E2promRead(unsigned char *data);
 void tempSensorRead( unsigned char *data );
@@ -28,3 +34,4 @@ void SetupI2CTransmit( unsigned int channel, unsigned int dcount );
 void SetupI2CReception( unsigned int channel,
                         unsigned int xcount, unsigned int dcount );
 
+void i2cTest();

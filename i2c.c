@@ -147,6 +147,7 @@ void InitI2C( void )
     IntSystemEnable(SYS_INT_I2C1INT);
 
     // Send set expander output direction
+/*
     SetupI2C( 1, I2C_ADDR_PIC_EXPAND );
 
     dataToSlave[ 0 ] = 0x00;
@@ -156,6 +157,63 @@ void InitI2C( void )
     SetupI2CTransmit( 1, 2 );
 
     expanderSend( 0x00 );
+*/
+
+    // Send set uart IO direction
+    SetupI2C( 1, I2C_ADDR_CUSTOM_UART0 );
+    dataToSlave[ 0 ] = 0x0A << 3;
+    dataToSlave[ 1 ] = 0xFF;
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
+
+    SetupI2C( 1, I2C_ADDR_CUSTOM_UART1 );
+    dataToSlave[ 0 ] = 0x0A << 3;
+    dataToSlave[ 1 ] = 0xFF;
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
+
+    // Send uart baud divisors
+    SetupI2C( 1, I2C_ADDR_CUSTOM_UART0 );
+    dataToSlave[ 0 ] = 0x03 << 3;
+    dataToSlave[ 1 ] = 0x80;
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
+
+    dataToSlave[ 0 ] = 0x00 << 3;
+    dataToSlave[ 1 ] = 0x08; // Div 8 == 115k
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
+
+    dataToSlave[ 0 ] = 0x01 << 3;
+    dataToSlave[ 1 ] = 0x00;
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
+
+    dataToSlave[ 0 ] = 0x03 << 3;
+    dataToSlave[ 1 ] = 0x13;
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
+
+    SetupI2C( 1, I2C_ADDR_CUSTOM_UART1 );
+    dataToSlave[ 0 ] = 0x03 << 3;
+    dataToSlave[ 1 ] = 0x80;
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
+
+    dataToSlave[ 0 ] = 0x00 << 3;
+    dataToSlave[ 1 ] = 0x08; // Div 8 == 115k
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
+
+    dataToSlave[ 0 ] = 0x01 << 3;
+    dataToSlave[ 1 ] = 0x00;
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
+
+    dataToSlave[ 0 ] = 0x03 << 3;
+    dataToSlave[ 1 ] = 0x13;
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
 }
 
 void SetupI2C( unsigned int channel, unsigned int slaveAddr )
@@ -449,4 +507,73 @@ void I2C1Isr(void)
     }
 
     I2CEndOfInterrupt(SOC_I2C_1_REGS, 0);
+}
+
+void i2cTest()
+{
+    static unsigned char val = 0xAA;
+    unsigned int j;
+    static unsigned char letter0 = 'a', letter1 = 'A';
+
+    while( 1 )
+    {
+        val ^= 0xFF;
+
+        // Send to expander 0
+        SetupI2C( 1, I2C_ADDR_CUSTOM_EXP0 );
+
+        dataToSlave[ 0 ] = val;
+        dataToSlave[ 1 ] = val;
+
+        tCount = 0;
+        SetupI2CTransmit( 1, 2 );
+
+        // Send to expander 1
+        SetupI2C( 1, I2C_ADDR_CUSTOM_EXP1 );
+
+        dataToSlave[ 0 ] = val;
+        dataToSlave[ 1 ] = val;
+
+        tCount = 0;
+        SetupI2CTransmit( 1, 2 );
+
+        // Send to UART 0
+        SetupI2C( 1, I2C_ADDR_CUSTOM_UART0 );
+
+        // - Toggle IO
+        dataToSlave[ 0 ] = 0x0B << 3;
+        dataToSlave[ 1 ] = val;
+
+        tCount = 0;
+        SetupI2CTransmit( 1, 2 );
+
+        // - Send serial byte
+        dataToSlave[ 0 ] = 0x00;
+        dataToSlave[ 1 ] = letter0;
+
+        tCount = 0;
+        SetupI2CTransmit( 1, 2 );
+
+        // Send to UART 1
+        SetupI2C( 1, I2C_ADDR_CUSTOM_UART1 );
+
+        // - Toggle IO
+        dataToSlave[ 0 ] = 0x0B << 3;
+        dataToSlave[ 1 ] = val;
+
+        tCount = 0;
+        SetupI2CTransmit( 1, 2 );
+
+        // - Send serial byte
+        dataToSlave[ 0 ] = 0x00;
+        dataToSlave[ 1 ] = letter1;
+
+        tCount = 0;
+        SetupI2CTransmit( 1, 2 );
+
+        if( ++letter0 == 'z' ) letter0 = 'a';
+        if( ++letter1 == 'Z' ) letter1 = 'A';
+
+        for( j = 0; j < 10000; ++j );
+    }
 }
