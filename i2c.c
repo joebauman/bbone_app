@@ -23,6 +23,8 @@ volatile unsigned int numOfBytes;
 volatile unsigned char dataToSlave[ 16 ];
 volatile unsigned char dataFromSlave[ 50 ];
 
+static unsigned char GPIO_Vals[ 2 ];
+
 /******************************************************************************
 **              FUNCTION DEFINITIONS
 ******************************************************************************/
@@ -146,6 +148,10 @@ void InitI2C( void )
     IntSystemEnable(SYS_INT_I2C0INT);
     IntSystemEnable(SYS_INT_I2C1INT);
 
+    // Initialize variables
+    GPIO_Vals[ 0 ] = 0;
+    GPIO_Vals[ 1 ] = 0;
+
     // Send set expander output direction
 /*
     SetupI2C( 1, I2C_ADDR_PIC_EXPAND );
@@ -160,6 +166,7 @@ void InitI2C( void )
 */
 
     // Send set uart IO direction
+/*
     SetupI2C( 1, I2C_ADDR_CUSTOM_UART0 );
     dataToSlave[ 0 ] = 0x0A << 3;
     dataToSlave[ 1 ] = 0xFF;
@@ -214,6 +221,7 @@ void InitI2C( void )
     dataToSlave[ 1 ] = 0x13;
     tCount = 0;
     SetupI2CTransmit( 1, 2 );
+*/
 }
 
 void SetupI2C( unsigned int channel, unsigned int slaveAddr )
@@ -577,3 +585,53 @@ void i2cTest()
         for( j = 0; j < 10000; ++j );
     }
 }
+
+// Use masks to turn GPIO pins on and off.
+
+void i2cGPIO_On( unsigned char b2, unsigned char b1 )
+{
+    // Update the local value
+    GPIO_Vals[ 0 ] |= b1;
+    GPIO_Vals[ 1 ] |= b2;
+
+    // Send to expander 0
+    SetupI2C( 1, I2C_ADDR_V5_EXP );
+
+    dataToSlave[ 0 ] = GPIO_Vals[ 0 ];
+    dataToSlave[ 1 ] = GPIO_Vals[ 1 ];
+
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
+}
+
+void i2cGPIO_Off( unsigned char b2, unsigned char b1 )
+{
+    // Update the local value
+    GPIO_Vals[ 0 ] &= ~b1;
+    GPIO_Vals[ 1 ] &= ~b2;
+
+    // Send to expander 0
+    SetupI2C( 1, I2C_ADDR_V5_EXP );
+
+    dataToSlave[ 0 ] = GPIO_Vals[ 0 ];
+    dataToSlave[ 1 ] = GPIO_Vals[ 1 ];
+
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
+}
+
+
+// Send a dac value.
+void i2cDAC_Set( int chan, unsigned char b2, unsigned char b1 )
+{
+    // Send to expander 0
+    SetupI2C( 1, I2C_ADDR_V5_EXP );
+
+    dataToSlave[ 0 ] = 0x10 | ( ( chan & 0x03 ) << 1 );
+    dataToSlave[ 1 ] = b1;
+    dataToSlave[ 2 ] = b2;
+
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
+}
+

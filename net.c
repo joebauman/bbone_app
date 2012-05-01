@@ -2,6 +2,8 @@
 
 #include "net.h"
 
+#include "i2c.h"
+
 #include "uartStdio.h"
 
 #define ECHO_SERVER_PORT        3891
@@ -40,6 +42,23 @@ unsigned char char2num( unsigned char c )
     else if( c >= 0x61 && c <= 0x66 ) // a-f
     {
         ret = c - 0x57;
+    }
+
+    return ret;
+}
+
+unsigned char num2char( unsigned char c )
+{
+    unsigned char ret = ' ';
+
+    // The next char should be a byte val - 0-F
+    if( c < 10 )
+    {
+        ret = c + 0x30; // 0-9
+    }
+    else if( c < 16 )
+    {
+        ret = c + 0x41; // A-F
     }
 
     return ret;
@@ -127,18 +146,34 @@ err_t net_recv( void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err )
     } while( p != NULL );
 
     UARTPuts( "Received: \n\r", -1 );
-    UARTPuts( (char *)mydata, tot_len );
+    for( i = 0; i < tot_len; ++i )
+    {
+        UARTPutc( num2char( mydata[ i ] >> 4 ) );
+        UARTPutc( num2char( mydata[ i ] & 0x0F ) );
+        UARTPutc( ' ' );
+    }
     UARTPuts( "\n\r", -1 );
 
-    if( mydata[ 0 ] == 'S' ) // Set
+    // Decode the message and use it.
+    for( i = 0; i < tot_len; )
     {
-        if( mydata[ 1 ] == 'E' ) // Expander
+        if( mydata[ i + 1 ] == 2 ) // DAC
         {
-            runData[ 0 ] = char2num( mydata[ 2 ] ) << 4;
-            runData[ 0 ] += char2num( mydata[ 3 ] );
-
-            runCommand = 1;
+            i2cDAC_Set( mydata[ i + 3 ], mydata[ i + 4 ], mydata[ i + 5 ] );
         }
+        else if( mydata[ i + 1 ] == 1 ) // GPIO
+        {
+            if( mydata[ i + 3 ] == 0 ) // OFF
+            {
+                i2cGPIO_Off( 0, 1 << mydata[ 4 ] );
+            }
+            else // ON
+            {
+                i2cGPIO_On( 0, 1 << mydata[ 4 ] );
+            }
+        }
+
+        i += mydata[ i ]; // Update pointer
     }
 
     // free pbuf's

@@ -21,6 +21,11 @@
 #define I2C_ADDR_CUSTOM_UART0   (0x90 >> 1)
 #define I2C_ADDR_CUSTOM_UART1   (0x92 >> 1)
 
+// I2C Addresses of Interface Board V5
+#define I2C_ADDR_V5_EXP         (0x20 >> 1)
+#define I2C_ADDR_V5_DAC         (0x98 >> 1)
+#define I2C_ADDR_V5_UART        (0x9A >> 1)
+
 void expanderSend( unsigned char data );
 void E2promRead(unsigned char *data);
 void tempSensorRead( unsigned char *data );
@@ -35,3 +40,10 @@ void SetupI2CReception( unsigned int channel,
                         unsigned int xcount, unsigned int dcount );
 
 void i2cTest();
+
+// Use masks to turn GPIO pins on and off.
+void i2cGPIO_On( unsigned char b2, unsigned char b1 );
+void i2cGPIO_Off( unsigned char b2, unsigned char b1 );
+
+// Send a dac value.
+void i2cDAC_Set( int chan, unsigned char b2, unsigned char b1 );

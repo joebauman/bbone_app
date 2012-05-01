@@ -213,7 +213,7 @@ int main(void)
     }
 
     // TEMP
-    i2cTest();
+    //i2cTest();
 
     /*
     ** Loop for ever. Necessary actions shall be taken
