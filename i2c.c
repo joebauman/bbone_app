@@ -152,6 +152,15 @@ void InitI2C( void )
     GPIO_Vals[ 0 ] = 0;
     GPIO_Vals[ 1 ] = 0;
 
+    // Send to expander 0
+    SetupI2C( 1, I2C_ADDR_V5_EXP );
+
+    dataToSlave[ 0 ] = GPIO_Vals[ 0 ];
+    dataToSlave[ 1 ] = GPIO_Vals[ 1 ];
+
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
+
     // Send set expander output direction
 /*
     SetupI2C( 1, I2C_ADDR_PIC_EXPAND );

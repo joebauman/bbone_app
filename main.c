@@ -59,8 +59,8 @@ extern void etharp_tmr(void);
 **                  GLOBAL VARIABLES DEFINITIONS                                         
 ****************************************************************************/
 
+unsigned char runData[ 32 ];
 unsigned int runCommand = 0;
-unsigned char runData[ 16 ];
 
 unsigned int clickIdx = 0;
 
@@ -221,14 +221,47 @@ int main(void)
     */
     while( 1 )
     {
-         EnetStatusCheckNUpdate();
+        EnetStatusCheckNUpdate();
 
-         if( runCommand > 0 )
-         {
+        if( runCommand )
+        {
+            if( runData[ 1 ] == 'D' )
+            {
+                UARTPuts( "** DAC SET\n\r", -1 );
+
+                if( runData[ 2 ] == 'A' )
+                {
+                    i2cDAC_Set( 0, runData[ 3 ], runData[ 4 ] );
+                }
+                if( runData[ 5 ] == 'B' )
+                {
+                    i2cDAC_Set( 1, runData[ 6 ], runData[ 7 ] );
+                }
+                if( runData[ 8 ] == 'C' )
+                {
+                    i2cDAC_Set( 2, runData[ 9 ], runData[ 10 ] );
+                }
+                if( runData[ 11 ] == 'D' )
+                {
+                    i2cDAC_Set( 3, runData[ 12 ], runData[ 13 ] );
+                }
+            }
+            else if( runData[ 1 ] == 'G' )
+            {
+                UARTPuts( "** GPIO OFF\n\r", -1 );
+
+                if( runData[ 2 ] == 0 ) // Off
+                {
+                    i2cGPIO_Off( 0, 1 << runData[ 3 ] );
+                }
+                else if( runData[ 2 ] == 1 ) // On
+                {
+                    i2cGPIO_On( 0, 1 << runData[ 3 ] );
+                }
+            }
+
             runCommand = 0;
-
-            expanderSend( runData[ 0 ] );
-         }
+        }
 
          /*
          ** Check if click is detected

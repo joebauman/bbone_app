@@ -20,8 +20,8 @@ err_t net_send( struct tcp_pcb *pcb, struct pbuf *p );
 err_t net_recv( void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err );
 err_t net_accept( void *arg, struct tcp_pcb *pcb, err_t err );
 
+extern unsigned char *runData;
 extern unsigned int runCommand;
-extern unsigned char runData[ 16 ];
 
 // Global copy buffer for echoing data back to the sender
 unsigned char mydata[ MAX_SIZE ];
@@ -154,27 +154,13 @@ err_t net_recv( void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err )
     }
     UARTPuts( "\n\r", -1 );
 
-    // Decode the message and use it.
-    for( i = 0; i < tot_len; )
+    // Send the data to the main loop
+    for( i = 0; i < tot_len; ++i )
     {
-        if( mydata[ i + 1 ] == 2 ) // DAC
-        {
-            i2cDAC_Set( mydata[ i + 3 ], mydata[ i + 4 ], mydata[ i + 5 ] );
-        }
-        else if( mydata[ i + 1 ] == 1 ) // GPIO
-        {
-            if( mydata[ i + 3 ] == 0 ) // OFF
-            {
-                i2cGPIO_Off( 0, 1 << mydata[ 4 ] );
-            }
-            else // ON
-            {
-                i2cGPIO_On( 0, 1 << mydata[ 4 ] );
-            }
-        }
-
-        i += mydata[ i ]; // Update pointer
+        runData[ i ] = mydata[ i ];
     }
+
+    runCommand = 1;
 
     // free pbuf's
     pbuf_free( p );

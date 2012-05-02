@@ -22,7 +22,7 @@
 #define I2C_ADDR_CUSTOM_UART1   (0x92 >> 1)
 
 // I2C Addresses of Interface Board V5
-#define I2C_ADDR_V5_EXP         (0x20 >> 1)
+#define I2C_ADDR_V5_EXP         (0x40 >> 1)
 #define I2C_ADDR_V5_DAC         (0x98 >> 1)
 #define I2C_ADDR_V5_UART        (0x9A >> 1)
 
