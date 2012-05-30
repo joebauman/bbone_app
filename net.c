@@ -19,12 +19,16 @@
 err_t net_send( struct tcp_pcb *pcb, struct pbuf *p );
 err_t net_recv( void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err );
 err_t net_accept( void *arg, struct tcp_pcb *pcb, err_t err );
+void net_err( void *arg, err_t err );
 
-extern unsigned char *runData;
+extern unsigned char runData[ 32 ];
 extern unsigned int runCommand;
 
 // Global copy buffer for echoing data back to the sender
 unsigned char mydata[ MAX_SIZE ];
+
+// Global struct for tcp coms
+struct tcp_pcb *global_pcb;
 
 unsigned char char2num( unsigned char c )
 {
@@ -52,13 +56,13 @@ unsigned char num2char( unsigned char c )
     unsigned char ret = ' ';
 
     // The next char should be a byte val - 0-F
-    if( c < 10 )
+    if( c < 0x0A )
     {
         ret = c + 0x30; // 0-9
     }
-    else if( c < 16 )
+    else if( c < 0x10 )
     {
-        ret = c + 0x41; // A-F
+        ret = c - 0x0A + 0x41; // A-F
     }
 
     return ret;
@@ -81,6 +85,8 @@ void net_close( struct tcp_pcb *pcb )
     tcp_close( pcb );
     tcp_arg( pcb, NULL );
     tcp_sent( pcb, NULL );
+
+    global_pcb = NULL;
 }
 
 err_t net_accept( void *arg, struct tcp_pcb *pcb, err_t err )
@@ -94,16 +100,18 @@ err_t net_accept( void *arg, struct tcp_pcb *pcb, err_t err )
 
     // Set up the various callback functions
     tcp_recv( pcb, net_recv );
-    tcp_err( pcb,  NULL );
+    tcp_err( pcb,  net_err );
     tcp_poll( pcb, NULL, ECHO_POLL_INTERVAL );
     tcp_sent( pcb, NULL );
+
+    global_pcb = pcb;
 
     return ERR_OK;
 }
 
 err_t net_recv( void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err )
 {
-    err_t err_send;
+    err_t err_send = ERR_OK;
 
     char *data;
     unsigned int cnt = 0, j, i;
@@ -155,12 +163,15 @@ err_t net_recv( void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err )
     UARTPuts( "\n\r", -1 );
 
     // Send the data to the main loop
-    for( i = 0; i < tot_len; ++i )
+    if( runCommand == 0 )
     {
-        runData[ i ] = mydata[ i ];
-    }
+        for( i = 0; i < tot_len; ++i )
+        {
+            runData[ i ] = mydata[ i ];
+        }
 
-    runCommand = 1;
+        runCommand = 1;
+    }
 
     // free pbuf's
     pbuf_free( p );
@@ -206,3 +217,16 @@ err_t net_send( struct tcp_pcb *pcb, struct pbuf *p )
     return err;
 }
 
+void net_ext_send( unsigned char *data, int len )
+{
+    if( global_pcb != NULL && data != NULL && len > 0 )
+    {
+        tcp_write( global_pcb, data, len, TCP_WRITE_FLAG_COPY );
+        tcp_output( global_pcb );
+    }
+}
+
+void net_err( void *arg, err_t err )
+{
+    UARTPuts( "ERROR\n\r", -1 );
+}

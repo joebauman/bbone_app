@@ -14,6 +14,7 @@
 //#include "demoSdRw.h"
 //#include "demoSdFs.h"
 #include "i2c.h"
+#include "net.h"
 
 #include "interrupt.h"
 #include "soc_AM335x.h"
@@ -61,6 +62,8 @@ extern void etharp_tmr(void);
 
 unsigned char runData[ 32 ];
 unsigned int runCommand = 0;
+
+unsigned char uartData[ 32 ];
 
 unsigned int clickIdx = 0;
 
@@ -116,6 +119,8 @@ int main(void)
 {
     unsigned int index;
     unsigned int j;
+
+    int result = 0;
 
     /*
     ** Sets up Section page tables. This is only first level
@@ -248,69 +253,47 @@ int main(void)
             }
             else if( runData[ 1 ] == 'G' )
             {
-                UARTPuts( "** GPIO OFF\n\r", -1 );
-
                 if( runData[ 2 ] == 0 ) // Off
                 {
+                    UARTPuts( "** GPIO OFF\n\r", -1 );
                     i2cGPIO_Off( 0, 1 << runData[ 3 ] );
                 }
                 else if( runData[ 2 ] == 1 ) // On
                 {
+                    UARTPuts( "** GPIO ON\n\r", -1 );
                     i2cGPIO_On( 0, 1 << runData[ 3 ] );
                 }
+            }
+            else if( runData[ 1 ] == 'U' )
+            {
+                UARTPuts( "** UART\n\r", -1 );
+                i2cUART_Send( &(runData[ 2 ]), 6 );
             }
 
             runCommand = 0;
         }
 
-         /*
-         ** Check if click is detected
-         */
-         if(clickIdx != 0)
-         {
-             /*
-             ** Take the Action for click
-             */
-             clickIdx = 0;
-         }
-       
-         /*
-         ** Check if the Timer Expired
-         */ 
-         if(TRUE == tmrFlag)
-         {
-             /* Toggle the LED state */
-             LedToggle();
-             tmrFlag = FALSE;
-         }
- 
-         /*
-         ** Check if RTC Time is set
-         */
-         if(TRUE == rtcSetFlag)
-         {
-             if(TRUE == rtcSecUpdate)
-             { 
-                 rtcSecUpdate = FALSE;
-                 RtcTimeCalDisplay();
-             }
-         } 
-   
-         /*
-         ** Check for SD Card
-         */
-/*
-         if(TRUE == sdCardAccessFlag)
-         {
-             HSMMCSDCardAccessSetup();
-         }
-*/
+        result = i2cUART_Recv( &( uartData[ 2 ] ), 30 );
 
-         if(TRUE == tmr4Flag)
-         {
-            tmr4Flag = FALSE;
-            etharp_tmr();
-         }
+        if( result > 0 )
+        {
+            UARTPuts( "** UART Recv: ", -1 );
+
+            for( index = 0; index < result; ++index )
+            {
+                UARTPutHexNum( uartData[ index + 2 ] );
+                UARTPutc( ' ' );
+            }
+
+            UARTPutc( '\n' );
+            UARTPutc( '\r' );
+
+            // Return the stage position info to the GUI
+            uartData[ 0 ] = result + 2;
+            uartData[ 1 ] = 'U';
+
+            net_ext_send( uartData, result + 2 );
+        }
     }
 }
 

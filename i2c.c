@@ -231,6 +231,48 @@ void InitI2C( void )
     tCount = 0;
     SetupI2CTransmit( 1, 2 );
 */
+    // Setup the UART on the V5 board.
+    SetupI2C( 1, I2C_ADDR_V5_UART );
+
+    // Set the baud rate: Baud rate is defined in i2c.h file
+    // 115200: DLL = 0x08, DLH = 0x00
+    // 9600 (Zaber): DLL = 0x60, DLH = 0x00
+    // Enable Divisor Latch
+    dataToSlave[ 0 ] = reg_LCR_ADDR;
+    dataToSlave[ 1 ] = 0x80;
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
+
+    // Write to DLL and DLH
+    if( baudRate == 115200 )
+    {
+        dataToSlave[ 1 ] = 0x08;
+    }
+    else
+    {
+        dataToSlave[ 1 ] = 0x60;
+    }
+
+    dataToSlave[ 0 ] = reg_DLL_ADDR;
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
+
+    dataToSlave[ 0 ] = reg_DLH_ADDR;
+    dataToSlave[ 1 ] = 0x00;
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
+
+    // Lock the Division Latch
+    dataToSlave[ 0 ] = reg_LCR_ADDR;
+    dataToSlave[ 1 ] = 0x03;
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
+
+    // Write to FCR register to clear and enable fifos
+    dataToSlave[ 0 ] = reg_FCR_ADDR;
+    dataToSlave[ 1 ] = 0x07;
+    tCount = 0;
+    SetupI2CTransmit( 1, 2 );
 }
 
 void SetupI2C( unsigned int channel, unsigned int slaveAddr )
@@ -528,70 +570,28 @@ void I2C1Isr(void)
 
 void i2cTest()
 {
-    static unsigned char val = 0xAA;
-    unsigned int j;
-    static unsigned char letter0 = 'a', letter1 = 'A';
+    unsigned char data[ 6 ];
+
+    data[ 0 ] = 0;
+    data[ 1 ] = 2; // Renumber
+    data[ 2 ] = 0;
+    data[ 3 ] = 0;
+    data[ 4 ] = 0;
+    data[ 5 ] = 0;
+
+    i2cUART_Send( data, 6 );
 
     while( 1 )
     {
-        val ^= 0xFF;
+        // Send to UART
+        data[ 0 ] = 1;
+        data[ 1 ] = 20; // Move abs
+        data[ 2 ] = 0;
+        data[ 3 ] = 0;
+        data[ 4 ] = 0;
+        data[ 5 ] = 0;
 
-        // Send to expander 0
-        SetupI2C( 1, I2C_ADDR_CUSTOM_EXP0 );
-
-        dataToSlave[ 0 ] = val;
-        dataToSlave[ 1 ] = val;
-
-        tCount = 0;
-        SetupI2CTransmit( 1, 2 );
-
-        // Send to expander 1
-        SetupI2C( 1, I2C_ADDR_CUSTOM_EXP1 );
-
-        dataToSlave[ 0 ] = val;
-        dataToSlave[ 1 ] = val;
-
-        tCount = 0;
-        SetupI2CTransmit( 1, 2 );
-
-        // Send to UART 0
-        SetupI2C( 1, I2C_ADDR_CUSTOM_UART0 );
-
-        // - Toggle IO
-        dataToSlave[ 0 ] = 0x0B << 3;
-        dataToSlave[ 1 ] = val;
-
-        tCount = 0;
-        SetupI2CTransmit( 1, 2 );
-
-        // - Send serial byte
-        dataToSlave[ 0 ] = 0x00;
-        dataToSlave[ 1 ] = letter0;
-
-        tCount = 0;
-        SetupI2CTransmit( 1, 2 );
-
-        // Send to UART 1
-        SetupI2C( 1, I2C_ADDR_CUSTOM_UART1 );
-
-        // - Toggle IO
-        dataToSlave[ 0 ] = 0x0B << 3;
-        dataToSlave[ 1 ] = val;
-
-        tCount = 0;
-        SetupI2CTransmit( 1, 2 );
-
-        // - Send serial byte
-        dataToSlave[ 0 ] = 0x00;
-        dataToSlave[ 1 ] = letter1;
-
-        tCount = 0;
-        SetupI2CTransmit( 1, 2 );
-
-        if( ++letter0 == 'z' ) letter0 = 'a';
-        if( ++letter1 == 'Z' ) letter1 = 'A';
-
-        for( j = 0; j < 10000; ++j );
+        i2cUART_Send( data, 6 );
     }
 }
 
@@ -634,13 +634,65 @@ void i2cGPIO_Off( unsigned char b2, unsigned char b1 )
 void i2cDAC_Set( int chan, unsigned char b2, unsigned char b1 )
 {
     // Send to expander 0
-    SetupI2C( 1, I2C_ADDR_V5_EXP );
+    SetupI2C( 1, I2C_ADDR_V5_DAC );
 
     dataToSlave[ 0 ] = 0x10 | ( ( chan & 0x03 ) << 1 );
-    dataToSlave[ 1 ] = b1;
-    dataToSlave[ 2 ] = b2;
+    dataToSlave[ 1 ] = b2;
+    dataToSlave[ 2 ] = b1;
 
     tCount = 0;
-    SetupI2CTransmit( 1, 2 );
+    SetupI2CTransmit( 1, 3 );
+}
+
+void i2cUART_Send( unsigned char *data, unsigned int len )
+{
+    unsigned int i = 0;
+
+    if( len > 15 ) return;
+
+    SetupI2C( 1, I2C_ADDR_V5_UART );
+
+    dataToSlave[ 0 ] = reg_TX_ADDR;
+
+    for( i = 0; i < len; ++i )
+    {
+        dataToSlave[ i + 1 ] = data[ i ];
+    }
+
+    tCount = 0;
+    SetupI2CTransmit( 1, len + 1 );
+}
+
+int i2cUART_Recv( unsigned char *data, unsigned int len )
+{
+    unsigned int i;
+
+    SetupI2C( 1, I2C_ADDR_V5_UART );
+    
+    // Read RXLVL to see if there is data to receive.
+    dataToSlave[ 0 ] = reg_RXLVL_ADDR;
+
+    tCount = 0;
+    rCount = 0;
+    SetupI2CReception( 1, 1, 1 );
+
+    if( dataFromSlave[ 0 ] < 6 )
+    {
+        return 0;
+    }
+
+    // Read the data
+    dataToSlave[ 0 ] = reg_RX_ADDR;
+
+    tCount = 0;
+    rCount = 0;
+    SetupI2CReception( 1, 1, 6 );
+
+    for( i = 0; i < 6; i++ )
+    {
+        data[ i ] = dataFromSlave[ i ];
+    }
+
+    return 6;
 }
 

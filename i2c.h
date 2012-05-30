@@ -26,6 +26,19 @@
 #define I2C_ADDR_V5_DAC         (0x98 >> 1)
 #define I2C_ADDR_V5_UART        (0x9A >> 1)
 
+// I2C UART register address - SC16IS750
+#define reg_LCR_ADDR            (0x03 << 3)
+#define reg_DLL_ADDR            (0x00 << 3)
+#define reg_DLH_ADDR            (0x01 << 3)
+#define reg_FCR_ADDR            (0x02 << 3)
+#define reg_TX_ADDR             (0x00 << 3)
+#define reg_RX_ADDR             (0x00 << 3)
+#define reg_LSR_ADDR            (0x05 << 3)
+#define reg_RXLVL_ADDR          (0x09 << 3)
+
+// I2C UART Baud Rate
+#define baudRate                (9600)
+
 void expanderSend( unsigned char data );
 void E2promRead(unsigned char *data);
 void tempSensorRead( unsigned char *data );
@@ -47,3 +60,7 @@ void i2cGPIO_Off( unsigned char b2, unsigned char b1 );
 
 // Send a dac value.
 void i2cDAC_Set( int chan, unsigned char b2, unsigned char b1 );
+
+// Send uart data
+void i2cUART_Send( unsigned char *data, unsigned int len );
+int  i2cUART_Recv( unsigned char *data, unsigned int len );
