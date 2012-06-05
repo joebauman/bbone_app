@@ -2,6 +2,8 @@
  * \file    demoLedIf.c
  *
  * \brief   This file contains LED interface related functions.
+ * 
+ * The beaglebone LED GPIO pin numbers, as used below, are 21, 22, 23, 24.
  *
 */
 
@@ -40,7 +42,10 @@ void LedIfConfig(void)
     GPIOModuleReset(SOC_GPIO_1_REGS);
 
     /* Setting the GPIO pin as an output pin. */
+    GPIODirModeSet(SOC_GPIO_1_REGS, 21, GPIO_DIR_OUTPUT);
+    GPIODirModeSet(SOC_GPIO_1_REGS, 22, GPIO_DIR_OUTPUT);
     GPIODirModeSet(SOC_GPIO_1_REGS, 23, GPIO_DIR_OUTPUT);
+    GPIODirModeSet(SOC_GPIO_1_REGS, 24, GPIO_DIR_OUTPUT);
 }
 
 /*
@@ -55,16 +60,16 @@ void LedToggle(void)
 /*
 ** Turn the  LED Off.
 */
-void LedOff(void)
+void LedOff( unsigned int led )
 {
-    GPIOPinWrite(SOC_GPIO_1_REGS, 23, GPIO_PIN_LOW);
+    GPIOPinWrite(SOC_GPIO_1_REGS, led, GPIO_PIN_LOW);
 }
 /*
 ** Turn the  LED Off.
 */
-void LedOn(void)
+void LedOn( unsigned int led )
 {
-    GPIOPinWrite(SOC_GPIO_1_REGS, 23, GPIO_PIN_HIGH);
+    GPIOPinWrite(SOC_GPIO_1_REGS, led, GPIO_PIN_HIGH);
 }
 
 /****************************** End of file **********************************/

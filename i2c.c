@@ -138,6 +138,8 @@ void expanderSend( unsigned char data )
 
 void InitI2C( void )
 {
+    unsigned char data[ 6 ];
+
     // I2C Interrupts
     IntRegister(SYS_INT_I2C0INT, I2C0Isr);
     IntRegister(SYS_INT_I2C1INT, I2C1Isr);
@@ -273,6 +275,24 @@ void InitI2C( void )
     dataToSlave[ 1 ] = 0x07;
     tCount = 0;
     SetupI2CTransmit( 1, 2 );
+
+    // Send mode updates to the stage controlers
+
+    data[ 0 ] = 1;    // Dev 1
+    data[ 1 ] = 40;   // Set Mode
+    //data[ 2 ] = 0x01; // Disable auto reply
+    data[ 2 ] = 0x00;
+    data[ 3 ] = 0x00;
+    data[ 4 ] = 0x08; // Circular phase microstepping (default)
+    data[ 5 ] = 0x00;
+
+    i2cUART_Send( data, 6 );
+
+    data[ 0 ] = 2;    // Dev 2
+    i2cUART_Send( data, 6 );
+
+    data[ 0 ] = 3;    // Dev 3
+    i2cUART_Send( data, 6 );
 }
 
 void SetupI2C( unsigned int channel, unsigned int slaveAddr )

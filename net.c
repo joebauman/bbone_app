@@ -149,6 +149,10 @@ err_t net_recv( void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err )
         {
             mydata[ cnt ] = data[ j ];
         }
+
+        // free pbuf's
+        pbuf_free( p );
+
         p = p->next;
 
     } while( p != NULL );
@@ -170,11 +174,8 @@ err_t net_recv( void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err )
             runData[ i ] = mydata[ i ];
         }
 
-        runCommand = 1;
+        runCommand = tot_len;
     }
-
-    // free pbuf's
-    pbuf_free( p );
 
     // send the data in buffer over network with tcp header attached
     err_send = tcp_write( pcb, mydata, tot_len, TCP_WRITE_FLAG_COPY );

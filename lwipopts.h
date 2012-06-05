@@ -47,7 +47,10 @@
 ** For Example, for IP Address 192.168.247.1, use the corresponding hex
 ** value 0xC0A8F701.
 */
-#define STATIC_IP_ADDRESS               0xC0A8006F
+//#define STATIC_IP_ADDRESS               0 // Dynamic
+
+#define STATIC_IP_ADDRESS               0xC0A8006F // 192.168.0.111
+//#define STATIC_IP_ADDRESS               0xC0A81C20 // 192.168.28.32
 
 /*****************************************************************************
 **            lwIP SPECIFIC DEFINITIONS - To be used by lwIP stack
@@ -117,7 +120,14 @@
 **                          Debugging options
 *****************************************************************************/
 #define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_OFF
+//#define LWIP_DBG_MIN_LEVEL              0xf3
 #define LWIP_DBG_TYPES_ON               (LWIP_DBG_ON | LWIP_DBG_TRACE \
                                          |LWIP_DBG_STATE | LWIP_DBG_FRESH)
+
+//extern void UARTprintf( const char *pcString, ... );
+
+//#define LWIP_PLATFORM_DIAG(x)           do { UARTprintf(x) } while( 0 )
+
+//#define LWIP_DEBUG 1
 
 #endif /* __LWIPOPTS_H__ */

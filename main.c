@@ -62,6 +62,7 @@ extern void etharp_tmr(void);
 
 unsigned char runData[ 32 ];
 unsigned int runCommand = 0;
+unsigned int runIndex = 0;
 
 unsigned char uartData[ 32 ];
 
@@ -106,7 +107,7 @@ static void PeripheralsSetUp(void)
 static void ContextReset(void)
 {
     tmrFlag  = FALSE;
-    LedOff();
+    LedOff( USER_LED_3 );
     rtcSetFlag = FALSE;
     rtcSecUpdate = FALSE;
 //    sdCardAccessFlag = FALSE;
@@ -210,12 +211,18 @@ int main(void)
 
     Timer4Start(); 
 
-    for( index = 0; index < 5; ++index )
-    {
-        LedToggle();
-
-        for( j = 0; j < 100000; ++j );
-    }
+    LedOn( USER_LED_1 );
+    for( j = 0; j < 1000000; ++j );
+    LedOff( USER_LED_1 );
+    LedOn( USER_LED_2 );
+    for( j = 0; j < 1000000; ++j );
+    LedOff( USER_LED_2 );
+    LedOn( USER_LED_3 );
+    for( j = 0; j < 1000000; ++j );
+    LedOff( USER_LED_3 );
+    LedOn( USER_LED_4 );
+    for( j = 0; j < 1000000; ++j );
+    LedOff( USER_LED_4 );
 
     // TEMP
     //i2cTest();
@@ -230,47 +237,65 @@ int main(void)
 
         if( runCommand )
         {
-            if( runData[ 1 ] == 'D' )
+            // Command blink
+            LedOn( USER_LED_1 );
+
+            if( runData[ runIndex + 1 ] == 'D' )
             {
                 UARTPuts( "** DAC SET\n\r", -1 );
 
-                if( runData[ 2 ] == 'A' )
+                if( runData[ runIndex + 2 ] == 'A' )
                 {
-                    i2cDAC_Set( 0, runData[ 3 ], runData[ 4 ] );
+                    i2cDAC_Set( 0,
+                        runData[ runIndex + 3 ], runData[ runIndex + 4 ] );
                 }
-                if( runData[ 5 ] == 'B' )
+                if( runData[ runIndex + 5 ] == 'B' )
                 {
-                    i2cDAC_Set( 1, runData[ 6 ], runData[ 7 ] );
+                    i2cDAC_Set( 1,
+                        runData[ runIndex + 6 ], runData[ runIndex + 7 ] );
                 }
-                if( runData[ 8 ] == 'C' )
+                if( runData[ runIndex + 8 ] == 'C' )
                 {
-                    i2cDAC_Set( 2, runData[ 9 ], runData[ 10 ] );
+                    i2cDAC_Set( 2,
+                        runData[ runIndex + 9 ], runData[ runIndex + 10 ] );
                 }
-                if( runData[ 11 ] == 'D' )
+                if( runData[ runIndex + 11 ] == 'D' )
                 {
-                    i2cDAC_Set( 3, runData[ 12 ], runData[ 13 ] );
+                    i2cDAC_Set( 3,
+                        runData[ runIndex + 12 ], runData[ runIndex + 13 ] );
                 }
             }
-            else if( runData[ 1 ] == 'G' )
+            else if( runData[ runIndex + 1 ] == 'G' )
             {
-                if( runData[ 2 ] == 0 ) // Off
+                if( runData[ runIndex + 2 ] == 0 ) // Off
                 {
                     UARTPuts( "** GPIO OFF\n\r", -1 );
-                    i2cGPIO_Off( 0, 1 << runData[ 3 ] );
+                    i2cGPIO_Off( 0, 1 << runData[ runIndex + 3 ] );
                 }
-                else if( runData[ 2 ] == 1 ) // On
+                else if( runData[ runIndex + 2 ] == 1 ) // On
                 {
                     UARTPuts( "** GPIO ON\n\r", -1 );
-                    i2cGPIO_On( 0, 1 << runData[ 3 ] );
+                    i2cGPIO_On( 0, 1 << runData[ runIndex + 3 ] );
                 }
             }
-            else if( runData[ 1 ] == 'U' )
+            else if( runData[ runIndex + 1 ] == 'U' )
             {
                 UARTPuts( "** UART\n\r", -1 );
-                i2cUART_Send( &(runData[ 2 ]), 6 );
+                i2cUART_Send( &(runData[ runIndex + 2 ]), 6 );
             }
 
-            runCommand = 0;
+            runCommand -= runData[ runIndex + 0 ];
+
+            if( runCommand > 0 )
+            {
+                runIndex += runData[ runIndex + 0 ];
+            }
+            else
+            {
+                runIndex = 0;
+            }
+
+            LedOff( USER_LED_1 );
         }
 
         result = i2cUART_Recv( &( uartData[ 2 ] ), 30 );
@@ -289,10 +314,14 @@ int main(void)
             UARTPutc( '\r' );
 
             // Return the stage position info to the GUI
-            uartData[ 0 ] = result + 2;
-            uartData[ 1 ] = 'U';
+            if( uartData[ 3 ] == 0x0A ||
+                uartData[ 3 ] == 0x3C )
+            {
+                uartData[ 0 ] = result + 2;
+                uartData[ 1 ] = 'U';
 
-            net_ext_send( uartData, result + 2 );
+                net_ext_send( uartData, result + 2 );
+            }
         }
     }
 }

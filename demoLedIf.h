@@ -14,9 +14,17 @@
 /******************************************************************************
 **                      EXTERNAL FUNCTION PROTOTYPES
 *******************************************************************************/
+
+#define USER_LED_1  21
+#define USER_LED_2  22
+#define USER_LED_3  23
+#define USER_LED_4  24
+
 extern void LedIfConfig(void);
+
 extern void LedToggle(void);
-extern void LedOff(void);
-extern void LedOn(void);
+
+extern void LedOff( unsigned int led );
+extern void LedOn( unsigned int led );
 
 #endif
