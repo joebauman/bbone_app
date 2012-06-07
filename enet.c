@@ -75,7 +75,7 @@ unsigned int EnetLinkIsUp(void)
 /*
 ** initializes the httpserver and prints the IP address on the UART console
 */
-void EnetHttpServerInit(void)
+void EnetHttpServerInit( unsigned int ip )
 {
     unsigned char macArray[6];
     volatile unsigned int cnt = 3;
@@ -91,14 +91,15 @@ void EnetHttpServerInit(void)
     while(cnt--)
     {  
         
-    /* Initialze the lwIP library, using DHCP.*/
-#if STATIC_IP_ADDRESS
-        ipAddr = lwIPInit( 0, macArray,
-                           STATIC_IP_ADDRESS, 0, 0, IPADDR_USE_STATIC );
-#else
-        ipAddr = lwIPInit( 0, macArray,
-                           0, 0, 0, IPADDR_USE_DHCP );
-#endif
+        /* Initialze the lwIP library, using DHCP or STATIC.*/
+        if( ip > 0 )
+        {
+            ipAddr = lwIPInit( 0, macArray, ip, 0, 0, IPADDR_USE_STATIC );
+        }
+        else
+        {
+            ipAddr = lwIPInit( 0, macArray, 0, 0, 0, IPADDR_USE_DHCP );
+        }
 
         if( 0!= ipAddr)
         {

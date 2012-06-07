@@ -515,6 +515,6 @@ void HSMMCSDCardAccessSetup(void)
         initStat++;
     }
    
-    HSMMCSDFsProcessCmdLine();
+    //HSMMCSDFsProcessCmdLine();
 }
 

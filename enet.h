@@ -19,7 +19,7 @@
 **                      EXTERNAL FUNCTION PROTOTYPES
 *******************************************************************************/
 extern void EnetIntRegister(void);
-extern void EnetHttpServerInit(void);
+extern void EnetHttpServerInit( unsigned int ip );
 extern void IpAddrDisplay(void);
 extern unsigned int EnetIfIsUp(void);
 extern unsigned int EnetLinkIsUp(void);

@@ -11,10 +11,13 @@
 #include "enet.h"
 #include "demoLedIf.h"
 #include "demoRtc.h"
-//#include "demoSdRw.h"
-//#include "demoSdFs.h"
+#include "demoSdRw.h"
+#include "demoSdFs.h"
 #include "i2c.h"
 #include "net.h"
+
+#include "ff.h"
+#include "mmcsd_proto.h"
 
 #include "interrupt.h"
 #include "soc_AM335x.h"
@@ -59,6 +62,10 @@ extern void etharp_tmr(void);
 /****************************************************************************
 **                  GLOBAL VARIABLES DEFINITIONS                                         
 ****************************************************************************/
+
+mmcsdCardInfo SDCard;
+
+unsigned int IPAddress = 0;
 
 unsigned char runData[ 32 ];
 unsigned int runCommand = 0;
@@ -111,6 +118,63 @@ static void ContextReset(void)
     rtcSetFlag = FALSE;
     rtcSecUpdate = FALSE;
 //    sdCardAccessFlag = FALSE;
+}
+
+/*
+** Read config info from SD card files
+*/
+void configRead()
+{
+    FIL fileObj;
+    FRESULT fresult;
+    char data[ 32 ];
+    unsigned short bytesRead = 0;
+    unsigned int i;
+
+    // Open and read the IP Address file
+    fresult = f_open( &fileObj, "ipaddr", FA_READ );
+
+    if( fresult != FR_OK )
+    {
+        return;
+    }
+
+    fresult = f_read( &fileObj, data, 8, &bytesRead );
+ 
+    if( fresult != FR_OK )
+    {
+        UARTPuts( "Couldn't read ipaddr file... Using Dynamic IP", -1 );
+        IPAddress = 0;
+        f_close( &fileObj );
+        return;
+    }
+
+    data[ bytesRead ] = 0;
+
+    UARTPuts( "IP Addr File: Using 0x", -1 );
+    UARTPuts( data, -1 );
+    UARTPuts( "\n\r", -1 );
+
+    f_close( &fileObj );
+
+    // Decode IP Address
+    for( i = 0; i < 8; ++i )
+    {
+        if( data[ i ] >= '0' && data[ i ] <= '9' )
+        {
+            data[ i ] -= 0x30;
+        }
+        else if( data[ i ] >= 'A' && data[ i ] <= 'F' )
+        {
+            data[ i ] -= 0x37;
+        }
+        else if( data[ i ] >= 'a' && data[ i ] <= 'f' )
+        {
+            data[ i ] -= 0x57;
+        }
+
+        IPAddress += (unsigned int)(data[ i ]) << ( 28 - i * 4 );
+    }
 }
 
 /*
@@ -171,7 +235,7 @@ int main(void)
     Timer4IntRegister();
     EnetIntRegister();
     RtcIntRegister();
-//    HSMMCSDIntRegister();
+    HSMMCSDIntRegister();
     IntRegister(127, dummyIsr);
 
     IntMasterIRQEnable();
@@ -196,7 +260,7 @@ int main(void)
 
     RtcInit();
     UARTStdioInit();
-//    HSMMCSDContolInit();
+    HSMMCSDContolInit();
     DelayTimerSetup();
 
     Timer2Config();
@@ -210,6 +274,11 @@ int main(void)
     InitI2C();
 
     Timer4Start(); 
+
+    // Read config from files
+    HSMMCSDCardAccessSetup();
+
+    configRead();
 
     LedOn( USER_LED_1 );
     for( j = 0; j < 1000000; ++j );
@@ -342,7 +411,7 @@ static void EnetStatusCheckNUpdate(void)
         {
             ContextReset();
             linkFlag = FALSE;
-            EnetHttpServerInit();
+            EnetHttpServerInit( IPAddress );
 
             if(ipAddr)
             {
