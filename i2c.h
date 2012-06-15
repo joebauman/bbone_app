@@ -39,9 +39,7 @@
 // I2C UART Baud Rate
 #define baudRate                (9600)
 
-void expanderSend( unsigned char data );
 void E2promRead(unsigned char *data);
-void tempSensorRead( unsigned char *data );
 
 void I2C0Isr( void );
 void I2C1Isr( void );
@@ -57,9 +55,11 @@ void i2cTest();
 // Use masks to turn GPIO pins on and off.
 void i2cGPIO_On( unsigned char b2, unsigned char b1 );
 void i2cGPIO_Off( unsigned char b2, unsigned char b1 );
+void i2cGPIO_Get( unsigned char *data );
 
 // Send a dac value.
-void i2cDAC_Set( int chan, unsigned char b2, unsigned char b1 );
+void i2cDAC_Set( int chan, unsigned char b1, unsigned char b2 );
+void i2cDAC_Get( int chan, unsigned char *data );
 
 // Send uart data
 void i2cUART_Send( unsigned char *data, unsigned int len );

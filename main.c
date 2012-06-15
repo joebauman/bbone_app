@@ -67,7 +67,7 @@ mmcsdCardInfo SDCard;
 
 unsigned int IPAddress = 0;
 
-unsigned char runData[ 32 ];
+unsigned char runData[ 64 ];
 unsigned int runCommand = 0;
 unsigned int runIndex = 0;
 
@@ -311,40 +311,80 @@ int main(void)
 
             if( runData[ runIndex + 1 ] == 'D' )
             {
-                UARTPuts( "** DAC SET\n\r", -1 );
+                if( runData[ runIndex + 2 ] == 'S' )
+                {
+                    UARTPuts( "** DAC SET\n\r", -1 );
 
-                if( runData[ runIndex + 2 ] == 'A' )
-                {
-                    i2cDAC_Set( 0,
-                        runData[ runIndex + 3 ], runData[ runIndex + 4 ] );
+                    if( runData[ runIndex + 3 ] == 'A' )
+                    {
+                        i2cDAC_Set( 0,
+                          runData[ runIndex + 4 ], runData[ runIndex + 5 ] );
+                    }
+                    if( runData[ runIndex + 6 ] == 'B' )
+                    {
+                        i2cDAC_Set( 1,
+                          runData[ runIndex + 7 ], runData[ runIndex + 8 ] );
+                    }
+                    if( runData[ runIndex + 9 ] == 'C' )
+                    {
+                        i2cDAC_Set( 2,
+                          runData[ runIndex + 10 ], runData[ runIndex + 11 ] );
+                    }
+                    if( runData[ runIndex + 12 ] == 'D' )
+                    {
+                        i2cDAC_Set( 3,
+                          runData[ runIndex + 13 ], runData[ runIndex + 14 ] );
+                    }
                 }
-                if( runData[ runIndex + 5 ] == 'B' )
+                else if( runData[ runIndex + 2 ] == 'G' )
                 {
-                    i2cDAC_Set( 1,
-                        runData[ runIndex + 6 ], runData[ runIndex + 7 ] );
-                }
-                if( runData[ runIndex + 8 ] == 'C' )
-                {
-                    i2cDAC_Set( 2,
-                        runData[ runIndex + 9 ], runData[ runIndex + 10 ] );
-                }
-                if( runData[ runIndex + 11 ] == 'D' )
-                {
-                    i2cDAC_Set( 3,
-                        runData[ runIndex + 12 ], runData[ runIndex + 13 ] );
+                    UARTPuts( "** DAC GET\n\r", -1 );
+
+                    uartData[ 0 ] = 15;
+                    uartData[ 1 ] = 'D';
+                    uartData[ 2 ] = 'G';
+
+                    uartData[ 3 ] = 'A';
+                    i2cDAC_Get( 0, &uartData[ 4 ] );
+
+                    uartData[ 6 ] = 'B';
+                    i2cDAC_Get( 1, &uartData[ 7 ] );
+
+                    uartData[ 9 ] = 'C';
+                    i2cDAC_Get( 2, &uartData[ 10 ] );
+
+                    uartData[ 12 ] = 'D';
+                    i2cDAC_Get( 3, &uartData[ 13 ] );
+
+                    net_ext_send( uartData, 15 );
                 }
             }
             else if( runData[ runIndex + 1 ] == 'G' )
             {
-                if( runData[ runIndex + 2 ] == 0 ) // Off
+                if( runData[ runIndex + 2 ] == 'S' )
                 {
-                    UARTPuts( "** GPIO OFF\n\r", -1 );
-                    i2cGPIO_Off( 0, 1 << runData[ runIndex + 3 ] );
+                    if( runData[ runIndex + 3 ] == 0 ) // Off
+                    {
+                        UARTPuts( "** GPIO OFF\n\r", -1 );
+                        i2cGPIO_Off( 0, 1 << runData[ runIndex + 4 ] );
+                    }
+                    else if( runData[ runIndex + 3 ] == 1 ) // On
+                    {
+                        UARTPuts( "** GPIO ON\n\r", -1 );
+                        i2cGPIO_On( 0, 1 << runData[ runIndex + 4 ] );
+                    }
                 }
-                else if( runData[ runIndex + 2 ] == 1 ) // On
+                else if( runData[ runIndex + 2 ] == 'G' )
                 {
-                    UARTPuts( "** GPIO ON\n\r", -1 );
-                    i2cGPIO_On( 0, 1 << runData[ runIndex + 3 ] );
+                    UARTPuts( "** GPIO GET\n\r", -1 );
+
+                    uartData[ 0 ] = 5;
+                    uartData[ 1 ] = 'G';
+                    uartData[ 2 ] = 'G';
+
+                    i2cGPIO_Get( &uartData[ 3 ] );
+
+                    net_ext_send( uartData, 5 );
                 }
             }
             else if( runData[ runIndex + 1 ] == 'U' )

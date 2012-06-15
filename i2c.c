@@ -23,70 +23,14 @@ volatile unsigned int numOfBytes;
 volatile unsigned char dataToSlave[ 16 ];
 volatile unsigned char dataFromSlave[ 50 ];
 
-static unsigned char GPIO_Vals[ 2 ];
+// Variables to hold the current hardware state
+static unsigned char GPIO_Values[ 2 ];
+
+static unsigned char DAC_Values[ 2 * 4 ]; // 2 bytes * 4 channels
 
 /******************************************************************************
 **              FUNCTION DEFINITIONS
 ******************************************************************************/
-
-#if 0
-    // Send set output direction
-    SetupI2C( 1, I2C_ADDR_PIC_EXPAND );
-
-    dataToSlave[ 0 ] = 0x00;
-    dataToSlave[ 1 ] = 0x00;
-
-    tCount = 0;
-    SetupI2CTransmit( 1, 2 );
-
-    temp = 0xAA;
-
-    while(1)
-    {
-        SetupI2C( 1, I2C_ADDR_PIC_EXPAND );
-
-        temp ^= 0xFF;
-
-        // Send output
-        dataToSlave[ 0 ] = 0x09;
-        dataToSlave[ 1 ] = temp;
-
-        tCount = 0;
-        SetupI2CTransmit( 1, 2 );
-
-        // Send output
-        //dataToSlave[ 0 ] = 0x0A;
-        //dataToSlave[ 1 ] = temp;
-
-        //tCount = 0;
-        //SetupI2CTransmit( 2 );
-
-        // Send DAC Voltage
-        SetupI2C( 1, I2C_ADDR_PIC_DAC );
-
-        dataToSlave[ 0 ] = 0x00;
-        dataToSlave[ 1 ] = temp;
-        dataToSlave[ 2 ] = 0x00;
-
-        tCount = 0;
-        SetupI2CTransmit( 1, 3 );
-
-        // Read temp sensor
-        SetupI2C( 1, I2C_ADDR_PIC_TEMP );
-
-        tempSensorRead( dataRead );
-
-        UARTPutHexNum( dataRead[ 0 ] );
-        UARTPutc( ' ' );
-        UARTPutHexNum( dataRead[ 1 ] );
-        UARTPutc( '\n' );
-        UARTPutc( '\r' );
-
-        // Delay
-        for( i = 0; i < 500000; ++i );
-    }
-}
-#endif // 0
 
  /* 
  ** Reads data from a specific address of e2prom
@@ -108,37 +52,9 @@ void E2promRead(unsigned char *data)
     }
 }
 
-void tempSensorRead( unsigned char *data )
-{
-    unsigned int i;
-
-    dataToSlave[0] = 0x00; // Ambient value is Reg 0
-
-    tCount = 0;
-    rCount = 0;
-    SetupI2CReception( 1, 1, 2 );
-
-    for( i = 0; i < 2; i++ )
-    {
-        data[i] = dataFromSlave[i];
-    }
-}
-
-void expanderSend( unsigned char data )
-{
-    SetupI2C( 1, I2C_ADDR_PIC_EXPAND );
-
-    // Send output
-    dataToSlave[ 0 ] = 0x09;
-    dataToSlave[ 1 ] = data;
-
-    tCount = 0;
-    SetupI2CTransmit( 1, 2 );
-}
-
 void InitI2C( void )
 {
-    unsigned char data[ 6 ];
+    unsigned int i;
 
     // I2C Interrupts
     IntRegister(SYS_INT_I2C0INT, I2C0Isr);
@@ -151,88 +67,23 @@ void InitI2C( void )
     IntSystemEnable(SYS_INT_I2C1INT);
 
     // Initialize variables
-    GPIO_Vals[ 0 ] = 0;
-    GPIO_Vals[ 1 ] = 0;
+    GPIO_Values[ 0 ] = 0;
+    GPIO_Values[ 1 ] = 0;
+
+    for( i = 0; i < 8; ++i )
+    {
+        DAC_Values[ i ] = 0;
+    }
 
     // Send to expander 0
     SetupI2C( 1, I2C_ADDR_V5_EXP );
 
-    dataToSlave[ 0 ] = GPIO_Vals[ 0 ];
-    dataToSlave[ 1 ] = GPIO_Vals[ 1 ];
+    dataToSlave[ 0 ] = GPIO_Values[ 0 ];
+    dataToSlave[ 1 ] = GPIO_Values[ 1 ];
 
     tCount = 0;
     SetupI2CTransmit( 1, 2 );
 
-    // Send set expander output direction
-/*
-    SetupI2C( 1, I2C_ADDR_PIC_EXPAND );
-
-    dataToSlave[ 0 ] = 0x00;
-    dataToSlave[ 1 ] = 0x00;
-
-    tCount = 0;
-    SetupI2CTransmit( 1, 2 );
-
-    expanderSend( 0x00 );
-*/
-
-    // Send set uart IO direction
-/*
-    SetupI2C( 1, I2C_ADDR_CUSTOM_UART0 );
-    dataToSlave[ 0 ] = 0x0A << 3;
-    dataToSlave[ 1 ] = 0xFF;
-    tCount = 0;
-    SetupI2CTransmit( 1, 2 );
-
-    SetupI2C( 1, I2C_ADDR_CUSTOM_UART1 );
-    dataToSlave[ 0 ] = 0x0A << 3;
-    dataToSlave[ 1 ] = 0xFF;
-    tCount = 0;
-    SetupI2CTransmit( 1, 2 );
-
-    // Send uart baud divisors
-    SetupI2C( 1, I2C_ADDR_CUSTOM_UART0 );
-    dataToSlave[ 0 ] = 0x03 << 3;
-    dataToSlave[ 1 ] = 0x80;
-    tCount = 0;
-    SetupI2CTransmit( 1, 2 );
-
-    dataToSlave[ 0 ] = 0x00 << 3;
-    dataToSlave[ 1 ] = 0x08; // Div 8 == 115k
-    tCount = 0;
-    SetupI2CTransmit( 1, 2 );
-
-    dataToSlave[ 0 ] = 0x01 << 3;
-    dataToSlave[ 1 ] = 0x00;
-    tCount = 0;
-    SetupI2CTransmit( 1, 2 );
-
-    dataToSlave[ 0 ] = 0x03 << 3;
-    dataToSlave[ 1 ] = 0x13;
-    tCount = 0;
-    SetupI2CTransmit( 1, 2 );
-
-    SetupI2C( 1, I2C_ADDR_CUSTOM_UART1 );
-    dataToSlave[ 0 ] = 0x03 << 3;
-    dataToSlave[ 1 ] = 0x80;
-    tCount = 0;
-    SetupI2CTransmit( 1, 2 );
-
-    dataToSlave[ 0 ] = 0x00 << 3;
-    dataToSlave[ 1 ] = 0x08; // Div 8 == 115k
-    tCount = 0;
-    SetupI2CTransmit( 1, 2 );
-
-    dataToSlave[ 0 ] = 0x01 << 3;
-    dataToSlave[ 1 ] = 0x00;
-    tCount = 0;
-    SetupI2CTransmit( 1, 2 );
-
-    dataToSlave[ 0 ] = 0x03 << 3;
-    dataToSlave[ 1 ] = 0x13;
-    tCount = 0;
-    SetupI2CTransmit( 1, 2 );
-*/
     // Setup the UART on the V5 board.
     SetupI2C( 1, I2C_ADDR_V5_UART );
 
@@ -275,24 +126,6 @@ void InitI2C( void )
     dataToSlave[ 1 ] = 0x07;
     tCount = 0;
     SetupI2CTransmit( 1, 2 );
-
-    // Send mode updates to the stage controlers
-
-    data[ 0 ] = 1;    // Dev 1
-    data[ 1 ] = 40;   // Set Mode
-    //data[ 2 ] = 0x01; // Disable auto reply
-    data[ 2 ] = 0x00;
-    data[ 3 ] = 0x00;
-    data[ 4 ] = 0x08; // Circular phase microstepping (default)
-    data[ 5 ] = 0x00;
-
-    i2cUART_Send( data, 6 );
-
-    data[ 0 ] = 2;    // Dev 2
-    i2cUART_Send( data, 6 );
-
-    data[ 0 ] = 3;    // Dev 3
-    i2cUART_Send( data, 6 );
 }
 
 void SetupI2C( unsigned int channel, unsigned int slaveAddr )
@@ -620,14 +453,14 @@ void i2cTest()
 void i2cGPIO_On( unsigned char b2, unsigned char b1 )
 {
     // Update the local value
-    GPIO_Vals[ 0 ] |= b1;
-    GPIO_Vals[ 1 ] |= b2;
+    GPIO_Values[ 0 ] |= b1;
+    GPIO_Values[ 1 ] |= b2;
 
     // Send to expander 0
     SetupI2C( 1, I2C_ADDR_V5_EXP );
 
-    dataToSlave[ 0 ] = GPIO_Vals[ 0 ];
-    dataToSlave[ 1 ] = GPIO_Vals[ 1 ];
+    dataToSlave[ 0 ] = GPIO_Values[ 0 ];
+    dataToSlave[ 1 ] = GPIO_Values[ 1 ];
 
     tCount = 0;
     SetupI2CTransmit( 1, 2 );
@@ -636,32 +469,53 @@ void i2cGPIO_On( unsigned char b2, unsigned char b1 )
 void i2cGPIO_Off( unsigned char b2, unsigned char b1 )
 {
     // Update the local value
-    GPIO_Vals[ 0 ] &= ~b1;
-    GPIO_Vals[ 1 ] &= ~b2;
+    GPIO_Values[ 0 ] &= ~b1;
+    GPIO_Values[ 1 ] &= ~b2;
 
     // Send to expander 0
     SetupI2C( 1, I2C_ADDR_V5_EXP );
 
-    dataToSlave[ 0 ] = GPIO_Vals[ 0 ];
-    dataToSlave[ 1 ] = GPIO_Vals[ 1 ];
+    dataToSlave[ 0 ] = GPIO_Values[ 0 ];
+    dataToSlave[ 1 ] = GPIO_Values[ 1 ];
 
     tCount = 0;
     SetupI2CTransmit( 1, 2 );
 }
 
+void i2cGPIO_Get( unsigned char *data )
+{
+    if( data != NULL )
+    {
+        data[ 0 ] = GPIO_Values[ 0 ];
+        data[ 1 ] = GPIO_Values[ 1 ];
+    }
+}
 
-// Send a dac value.
-void i2cDAC_Set( int chan, unsigned char b2, unsigned char b1 )
+// Send a dac value.  Chan is 0-3.
+void i2cDAC_Set( int chan, unsigned char b1, unsigned char b2 )
 {
     // Send to expander 0
     SetupI2C( 1, I2C_ADDR_V5_DAC );
 
     dataToSlave[ 0 ] = 0x10 | ( ( chan & 0x03 ) << 1 );
-    dataToSlave[ 1 ] = b2;
-    dataToSlave[ 2 ] = b1;
+    dataToSlave[ 1 ] = b1;
+    dataToSlave[ 2 ] = b2;
 
     tCount = 0;
     SetupI2CTransmit( 1, 3 );
+
+    DAC_Values[ chan * 2 + 0 ] = b1;
+    DAC_Values[ chan * 2 + 1 ] = b2;
+}
+
+// Return a dac value.  Chan is 0-3.
+void i2cDAC_Get( int chan, unsigned char *data )
+{
+    if( data != NULL )
+    {
+        data[ 0 ] = DAC_Values[ chan * 2 + 0 ];
+        data[ 1 ] = DAC_Values[ chan * 2 + 1 ];
+    }
 }
 
 void i2cUART_Send( unsigned char *data, unsigned int len )

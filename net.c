@@ -21,7 +21,7 @@ err_t net_recv( void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err );
 err_t net_accept( void *arg, struct tcp_pcb *pcb, err_t err );
 void net_err( void *arg, err_t err );
 
-extern unsigned char runData[ 32 ];
+extern unsigned char runData[ 64 ];
 extern unsigned int runCommand;
 
 // Global copy buffer for echoing data back to the sender
@@ -218,9 +218,10 @@ err_t net_send( struct tcp_pcb *pcb, struct pbuf *p )
     return err;
 }
 
+// "External" net send
 void net_ext_send( unsigned char *data, int len )
 {
-    if( global_pcb != NULL && data != NULL && len > 0 )
+    if( global_pcb != 0 && data != 0 && len > 0 )
     {
         tcp_write( global_pcb, data, len, TCP_WRITE_FLAG_COPY );
         tcp_output( global_pcb );
