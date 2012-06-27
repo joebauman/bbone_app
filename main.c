@@ -477,14 +477,16 @@ static void EnetStatusCheckNUpdate(void)
 
         if((TRUE == linkFlag) && (ipAddr != 0))
         {
-             prevEnState = 1;
-             UARTPuts("\n\rAccess the home page using http://", -1);
-             IpAddrDisplay();
-             UARTPuts("/index.html \n\r", -1);
+            prevEnState = 1;
+            UARTPuts("\n\rAccess the home page using http://", -1);
+            IpAddrDisplay();
+            UARTPuts("/index.html \n\r", -1);
+            LedOn( USER_LED_4 );
         }
         else
         {
             UARTPuts("\n\rNetwork Connection failed.\n\r", -1);
+            LedOff( USER_LED_4 );
         }
     }
     else
