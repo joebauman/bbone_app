@@ -14,14 +14,14 @@
 // Priority for tcp pcbs
 #define ECHO_TCP_PRIO           TCP_PRIO_MAX
 
-#define MAX_SIZE                4096
+#define MAX_SIZE                1024
 
 err_t net_send( struct tcp_pcb *pcb, struct pbuf *p );
 err_t net_recv( void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err );
 err_t net_accept( void *arg, struct tcp_pcb *pcb, err_t err );
 void net_err( void *arg, err_t err );
 
-extern unsigned char runData[ 64 ];
+extern unsigned char runData[ 1024 ];
 extern unsigned int runCommand;
 
 // Global copy buffer for echoing data back to the sender
@@ -114,7 +114,7 @@ err_t net_recv( void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err )
     err_t err_send = ERR_OK;
 
     char *data;
-    unsigned int cnt = 0, j, i;
+    unsigned int cnt = 0, i;
     unsigned int len, tot_len;
 
     if( p != NULL )
@@ -139,46 +139,58 @@ err_t net_recv( void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err )
     // Do something weith the data?
     tot_len = p->tot_len;
 
-    // Traverse pbuf chain and store payload of each pbuf into buffer 
-    do
+    if( runCommand == 0 && tot_len < 1024 )
     {
-        data = (char*)p->payload;
-        len  = p->len;
-
-        for( i = 0, j = 0; i < len; i++, j++, cnt++ )
+        // Traverse pbuf chain and store payload of each pbuf into buffer 
+        do
         {
-            mydata[ cnt ] = data[ j ];
-        }
+            data = (char*)p->payload;
+            len  = p->len;
 
-        // free pbuf's
-        pbuf_free( p );
+            for( i = 0; i < len; i++, cnt++ )
+            {
+                runData[ cnt ] = data[ i ];
+            }
 
-        p = p->next;
+            // free pbuf's
+            pbuf_free( p );
 
-    } while( p != NULL );
+            p = p->next;
 
-    UARTPuts( "Received: \n\r", -1 );
-    for( i = 0; i < tot_len; ++i )
-    {
-        UARTPutc( num2char( mydata[ i ] >> 4 ) );
-        UARTPutc( num2char( mydata[ i ] & 0x0F ) );
-        UARTPutc( ' ' );
-    }
-    UARTPuts( "\n\r", -1 );
+        } while( p != NULL );
 
-    // Send the data to the main loop
-    if( runCommand == 0 )
-    {
+        // Send the data to the main loop
+        runCommand = tot_len;
+
+        UARTPuts( "Received: \n\r", -1 );
         for( i = 0; i < tot_len; ++i )
         {
-            runData[ i ] = mydata[ i ];
+            UARTPutc( num2char( runData[ i ] >> 4 ) );
+            UARTPutc( num2char( runData[ i ] & 0x0F ) );
+            UARTPutc( ' ' );
         }
+        UARTPuts( "\n\r", -1 );
+    }
+    else
+    {
+        // Traverse pbuf chain and skip each pbuf
+        do
+        {
+            // free pbuf's
+            pbuf_free( p );
 
-        runCommand = tot_len;
+            p = p->next;
+
+        } while( p != NULL );
+
+        tot_len = 0;
+
+        UARTPuts( "Skipped pbuf.\n\r", -1 );
     }
 
     // send the data in buffer over network with tcp header attached
     err_send = tcp_write( pcb, mydata, tot_len, TCP_WRITE_FLAG_COPY );
+    tcp_output( pcb );
 
     //err_send = net_send( pcb, p );
 

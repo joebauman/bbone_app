@@ -97,7 +97,7 @@
 **                           TCP  Options
 *****************************************************************************/
 #define TCP_MSS                         1460   /* default is 128 */
-#define TCP_WND                         (6*TCP_MSS)   /* default is 2048 */
+#define TCP_WND                         (4 * TCP_MSS)   /* default is 2048 */
 #define TCP_SND_BUF                     (2 * TCP_MSS)
 
 #define LWIP_TCP 1

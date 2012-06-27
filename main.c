@@ -67,7 +67,7 @@ mmcsdCardInfo SDCard;
 
 unsigned int IPAddress = 0;
 
-unsigned char runData[ 64 ];
+unsigned char runData[ 1024 ];
 unsigned int runCommand = 0;
 unsigned int runIndex = 0;
 
